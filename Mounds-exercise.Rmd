@@ -63,11 +63,7 @@ In order to learn about the dataset,
          Condition, PrincipalSourceOfImpact, createdBy
          
 ```{r data-trim}
-mounds22 <- m22 %>% 
-  select(MoundID, Date, TypeClean, Source, LanduseAroundMound, LanduseOnTopOfMound, Latitude, Longitude, Accuracy, HeightMax, HeightMin, DiameterMax,Condition, PrincipalSourceOfImpact, createdBy, createdAtGMT) %>% 
-  filter(grepl("mound", TypeClean, ignore.case = T)) %>% 
-  mutate(HeightMax = as.numeric(HeightMax)) %>% 
-  mutate(TypeClean = gsub("\\?\\?","\\?", TypeClean))
+
 
 ```
 and report on the following:
@@ -79,19 +75,13 @@ and report on the following:
 
 ```{r inspect-data}
 # Type counts
-mounds22 %>% 
-  group_by(TypeClean) %>% 
-  tally()
-
 
 # Accuracy
-summary(mounds22$Accuracy)
 
 # HeightMax
-summary(mounds22$HeightMax)
 
 # Unique condition
-unique(mounds22$Condition)
+
 ```
 
 
@@ -101,10 +91,7 @@ Create height boxplots for the 4 main types `Burial Mound`, `Burial Mound?`, `Ex
 
 - summarize the max, min and mean values of HeightMax on the basis of the cleaned up Type
 ```{r sum-height}
-mounds22 %>% 
-  group_by(TypeClean) %>% 
-  summarize(meanH = mean(HeightMax, na.rm = T),
-            maxH = max(HeightMax, na.rm = T))
+
 ```
 
 Plot the differences in mound height on the basis of type certainty  
@@ -112,15 +99,7 @@ Plot the differences in mound height on the basis of type certainty
 - use the b&w theme, remove the background panel, and provide meaningful axes names
 - what trend do you see in the heights?
 ```{r plot-height}
-mounds22 %>% 
-  ggplot(aes(x = TypeClean, y = HeightMax)) + 
-  geom_violin(alpha = 0)+
-  geom_jitter(color = "tomato")+
-  theme_bw()+
-  theme(panel.grid.major = element_blank())+
-  labs(x = "Feature type",
-       y = "Height of feature",
-       title = "Mound height by type")
+
 ```
 
 ### Source
@@ -131,33 +110,16 @@ Tally the Source to see how large the groups are.
 
 ```{r trim-source}
 # Clean up Source
-unique(mounds22$Source)
-mounds22 <- mounds22 %>% 
-  mutate(Source = case_when(
-    Source == "Legacy verification" ~ "Legacy",
-    Source == "Survey (The mound is depicted in a top map M 1:5000 and is still visible on the satellite  maps.)" ~ "Survey",
-    Source == "Survey?" ~ "Survey",
-    Source == "Survey" ~ "Survey",
-    Source == "Serendipity" ~ "Serendipity"
-  ))
+
 
 # Tally cleaned Source up
-mounds22 %>% 
-  count(Source)
+
 ```
 
 Create boxplots/violins of mounds by Source and HeightMax, using the same theme as in the previous plot.
 
 ```{r plot-source}
-mounds22 %>% 
-  ggplot(aes(x = Source, y = HeightMax)) + 
-  geom_violin(alpha = 0)+
-  geom_jitter(color = "tomato")+
-  theme_bw()+
-  theme(panel.grid.major = element_blank())+
-  labs(x = "Feature source",
-       y = "Height of feature",
-       title = "Mound height by source")
+
 ```
 
 ### Daily progress
@@ -169,12 +131,7 @@ Plot the progress of survey by day and feature source. You will first need to
 - color the bars by `Source`
 - set the theme to b&w
 ```{r plot-progress}
-mounds22 %>% 
- group_by(Date) %>%
-  ggplot(aes(x = Date))+
-  geom_bar(aes(fill = Source))+
-  theme_bw()+
-  labs(y = "Number of registered features")
+
 ```
 
 Looking at the chart, is the productivity of teams increasing or decreasing with time?
@@ -191,17 +148,8 @@ Plot the Condition using `geom_barplot()`.
 - label axes meaningfully and set theme to bw
 
 ```{r damage}
-unique(mounds22$Condition)
 
-mounds22 %>% 
-  #mutate(Condition = gsub("\\D","", Condition)) %>% # filter away non-digit characters
-  mutate(Condition = substr(Condition, 1,1)) %>%  # grab only the first number
-  filter(Condition != "0") %>% 
-  group_by(Condition) %>%
-  ggplot(aes(x = Condition))+
-  geom_bar(aes(fill = Source))+
-  coord_flip()+
-  theme_bw()
+
 ```
 
 ### How many mounds have been turned to bunkers?
@@ -209,14 +157,10 @@ Going to the original provided GoogleDrive dataset, search with `grepl()` on Not
 
 After you figure out the number, print out a message (Hint: `print` or `paste0()`) stating the fraction of the mounds that were converted to military.
 
-
 ```{r military}
 # military subset
-military <- m22 %>% 
-  filter(grepl("[Mm]ilitary|[Bb]unker",`Type Note`)) 
 
 # message
-paste0("During 2022, ",nrow(military), " of the verified ", nrow(mounds22), " features (",round(nrow(military)/nrow(mounds22)*100, digits=2),"%) were converted to military installations")
 
 ```
 
