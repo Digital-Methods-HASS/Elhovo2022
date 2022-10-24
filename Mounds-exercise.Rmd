@@ -85,16 +85,17 @@ and report on the following:
 ```
 
 
-### Summarize and plot HeightMax
+### Height
 
-Create height boxplots for the 4 main types `Burial Mound`, `Burial Mound?`, `Extinct Burial Mound` and `Extinct Burial Mound?` 
+Height is the most characteristic dimension of mounds, captured in HeightMax column. Summarize and plot mounds by height, but remember to also differentiate nuances in mound type. Create boxplots for the 4 main types `Burial Mound`, `Burial Mound?`, `Extinct Burial Mound` and `Extinct Burial Mound?` 
 
-- summarize the max, min and mean values of HeightMax on the basis of the cleaned up Type
+- summarize the max, min and mean values of `HeightMax` column on the basis of the cleaned-up Type
 ```{r sum-height}
 
 ```
 
 Plot the differences in mound height on the basis of type certainty  
+
 - try using the `geom_violin()` and plot the individual points with `geom_jitter()`
 - use the b&w theme, remove the background panel, and provide meaningful axes names
 - what trend do you see in the heights?
@@ -142,6 +143,7 @@ Looking at the chart, is the productivity of teams increasing or decreasing with
 If you have not yet reduced the Condition column to plain numbers from (0)1-5, do so now, using either `gsub()` or `substr()`.
 
 Plot the Condition using `geom_barplot()`.
+
 - filter away Condition == 0, as it means value not available 
 - flip the barplot on its side, showing the Condition bars horizontally
 - color the bars by Source
