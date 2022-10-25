@@ -1,0 +1,222 @@
+---
+title: "Playing with fresh field data, making sense of mounds"
+author: "Adela Sobotkova"
+date: "Created 17 oct 2022, updated `r format(Sys.time(), '%B %d, %Y')`" 
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    highlight: tango
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+```
+
+In this exercise, you can recapitulate the R skills you acquired in Week 35.
+You have a raw dataset available that was collected using the FAIMS mobile app in September 2022. It is consistent and complete, but ridden with comments and annotations, scribbled in the app's margin and appended to the values in the form of parentheticals. You can clean these away and analyse the main values in R, or optionally, take the dataset through OpenRefine first and then continue in R. 
+
+In the visualisation exercise, plot 
+
+- the differences in mound size in relation to main mound types (Burial Mound, Extinct Burial Mound and the uncertain variants). 
+- preservation of mounds on the scale of 1-5
+- progress of teams by day and source of feature
+
+### Setup
+```{r libraries}
+library(tidyverse)
+library(googlesheets4)
+```
+
+
+## Load raw data from GoogleDrive
+```{r load-google, eval = FALSE}
+gs4_deauth()
+m22 <- read_sheet("https://docs.google.com/spreadsheets/d/1Zn-B7ekaMRlAx3QbuQ3RiEGaX_IQlPpfMvTehfRyCy0/edit#gid=330777145")
+colnames(m22)
+```
+
+## Clean up here or in OpenRefine
+
+You can also load the data (n = 319) from GoogleDrive to OpenRefine. 
+An initial OpenRefine script is provided at this link https://docs.google.com/document/d/1Xcq5yuQOrQpVOkGF2fp3ZeK4ynyaTVa3sZZ41NI7ZF8/edit
+
+You might still need to:
+
+- edit the comments away from fields such as Source, HeightMax, and Condition
+- check for duplicates in MoundID (and eliminate them)
+
+```{r load-local}
+# YOUR CODE HERE
+m22 <- read_csv("data/2022AllBurialMounds-OR17Octcsv.csv")
+
+```
+
+## Analyze data
+
+In order to learn about the dataset, 
+
+- filter the data for mound-related records (hint: use `grepl()` )
+- keep only the following columns: MoundID, Date, TypeClean, Source, LanduseAroundMound, LanduseOnTopOfMound, Latitude, Longitude, Accuracy, HeightMax, HeightMin, DiameterMax,
+         Condition, PrincipalSourceOfImpact, createdBy
+         
+```{r data-trim}
+mounds22 <- m22 %>% 
+  select(MoundID, Date, TypeClean, Source, LanduseAroundMound, LanduseOnTopOfMound, Latitude, Longitude, Accuracy, HeightMax, HeightMin, DiameterMax,Condition, PrincipalSourceOfImpact, createdBy, createdAtGMT) %>% 
+  filter(grepl("mound", TypeClean, ignore.case = T)) %>% 
+  mutate(HeightMax = as.numeric(HeightMax)) %>% 
+  mutate(TypeClean = gsub("\\?\\?","\\?", TypeClean))
+
+```
+and report on the following:
+
+- count the different types(`tally()` or `count()`) of mounds
+- what is the range of `Accuracy` values (use `summary()`) so you know what the GPS precision was.
+- what is the datatype in `HeightMax`? (make sure it is a number)
+- what are the unique values in `Condition` and `Source`? 
+
+```{r inspect-data}
+# Type counts
+mounds22 %>% 
+  group_by(TypeClean) %>% 
+  tally()
+
+
+# Accuracy
+summary(mounds22$Accuracy)
+
+# HeightMax
+summary(mounds22$HeightMax)
+
+# Unique condition
+unique(mounds22$Condition)
+```
+
+
+### Summarize and plot HeightMax
+
+Create height boxplots for the 4 main types `Burial Mound`, `Burial Mound?`, `Extinct Burial Mound` and `Extinct Burial Mound?` 
+
+- summarize the max, min and mean values of HeightMax on the basis of the cleaned up Type
+```{r sum-height}
+mounds22 %>% 
+  group_by(TypeClean) %>% 
+  summarize(meanH = mean(HeightMax, na.rm = T),
+            maxH = max(HeightMax, na.rm = T))
+```
+
+Plot the differences in mound height on the basis of type certainty  
+- try using the `geom_violin()` and plot the individual points with `geom_jitter()`
+- use the b&w theme, remove the background panel, and provide meaningful axes names
+- what trend do you see in the heights?
+```{r plot-height}
+mounds22 %>% 
+  ggplot(aes(x = TypeClean, y = HeightMax)) + 
+  geom_violin(alpha = 0)+
+  geom_jitter(color = "tomato")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank())+
+  labs(x = "Feature type",
+       y = "Height of feature",
+       title = "Mound height by type")
+```
+
+### Source
+
+Fix any aberrant values in the Source column by either overwriting them directly or by using `case_when()` function. Retain all values, but strip away comments and question marks make sure that the unique values at the end are `Survey`, `Legacy`, and `Serendipity`.
+
+Tally the Source to see how large the groups are.
+
+```{r trim-source}
+# Clean up Source
+unique(mounds22$Source)
+mounds22 <- mounds22 %>% 
+  mutate(Source = case_when(
+    Source == "Legacy verification" ~ "Legacy",
+    Source == "Survey (The mound is depicted in a top map M 1:5000 and is still visible on the satellite  maps.)" ~ "Survey",
+    Source == "Survey?" ~ "Survey",
+    Source == "Survey" ~ "Survey",
+    Source == "Serendipity" ~ "Serendipity"
+  ))
+
+# Tally cleaned Source up
+mounds22 %>% 
+  count(Source)
+```
+
+Create boxplots/violins of mounds by Source and HeightMax, using the same theme as in the previous plot.
+
+```{r plot-source}
+mounds22 %>% 
+  ggplot(aes(x = Source, y = HeightMax)) + 
+  geom_violin(alpha = 0)+
+  geom_jitter(color = "tomato")+
+  theme_bw()+
+  theme(panel.grid.major = element_blank())+
+  labs(x = "Feature source",
+       y = "Height of feature",
+       title = "Mound height by source")
+```
+
+### Daily progress
+
+Plot the progress of survey by day and feature source. You will first need to 
+
+- group the Date values (hint: `group_by()`)
+- plot it using `geom_bar()`
+- color the bars by `Source`
+- set the theme to b&w
+```{r plot-progress}
+mounds22 %>% 
+ group_by(Date) %>%
+  ggplot(aes(x = Date))+
+  geom_bar(aes(fill = Source))+
+  theme_bw()+
+  labs(y = "Number of registered features")
+```
+
+Looking at the chart, is the productivity of teams increasing or decreasing with time?
+
+
+### Assess mound damage
+
+If you have not yet reduced the Condition column to plain numbers from (0)1-5, do so now, using either `gsub()` or `substr()`.
+
+Plot the Condition using `geom_barplot()`.
+- filter away Condition == 0, as it means value not available 
+- flip the barplot on its side, showing the Condition bars horizontally
+- color the bars by Source
+- label axes meaningfully and set theme to bw
+
+```{r damage}
+unique(mounds22$Condition)
+
+mounds22 %>% 
+  #mutate(Condition = gsub("\\D","", Condition)) %>% # filter away non-digit characters
+  mutate(Condition = substr(Condition, 1,1)) %>%  # grab only the first number
+  filter(Condition != "0") %>% 
+  group_by(Condition) %>%
+  ggplot(aes(x = Condition))+
+  geom_bar(aes(fill = Source))+
+  coord_flip()+
+  theme_bw()
+```
+
+### How many mounds have been turned to bunkers?
+Going to the original provided GoogleDrive dataset, search with `grepl()` on Notes in Type (`Type Note`) that say `military|bunker` , case insensitive, to gauge the number of features which have been reused for military purposes. 
+
+After you figure out the number, print out a message (Hint: `print` or `paste0()`) stating the fraction of the mounds that were converted to military.
+
+
+```{r military}
+# military subset
+military <- m22 %>% 
+  filter(grepl("[Mm]ilitary|[Bb]unker",`Type Note`)) 
+
+# message
+paste0("During 2022, ",nrow(military), " of the verified ", nrow(mounds22), " features (",round(nrow(military)/nrow(mounds22)*100, digits=2),"%) were converted to military installations")
+
+```
+
